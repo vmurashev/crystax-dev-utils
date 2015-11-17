@@ -16,7 +16,7 @@ if [ ! -f $CRYSTAX_ARC ]; then
     exit 1
 fi
 NDK_HOME=$CRYSTAX_BUILDS_ROOT/$CRYSTAX_LATEST_BUILD
-echo "NDK_DIR=$NDK_HOME/android-platform-ndk" > $DIR_HERE/ndk.pth
+echo "NDK_DIR='$NDK_HOME/android-platform-ndk'" > $DIR_HERE/ndk.pth
 if [ -d $NDK_HOME ]; then
     echo "Already bootstraped: $NDK_HOME"
     exit 0
