@@ -15,7 +15,6 @@ MY_ABI='armeabi-v7a'
 PYTHON3_MAJOR_VERSION='5'
 C_RUNTIME_DIR_FOR_MY_ABI=os.path.normpath(os.path.join(NDK_DIR, 'sources/crystax/libs/armeabi-v7a/thumb'))
 C_RUNTIME_FOR_MY_ABI=os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
-LIBSQLITE3_FOR_MY_ABI=os.path.normpath(os.path.join(NDK_DIR, 'sources/sqlite/3/libs/armeabi-v7a/libsqlite3.so'))
 PYLIBS_TARGET_ROOT='/data/local/tmp/pylibs3{0}'.format(PYTHON3_MAJOR_VERSION)
 PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.{0}/libs'.format(PYTHON3_MAJOR_VERSION), MY_ABI))
 
@@ -71,7 +70,6 @@ def main():
 	check_call('adb shell mkdir {0}'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb shell mkdir {0}/libs'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb push {0} {1}/libs'.format(C_RUNTIME_FOR_MY_ABI, PYLIBS_TARGET_ROOT))
-	check_call('adb push {0} {1}/libs'.format(LIBSQLITE3_FOR_MY_ABI, PYLIBS_TARGET_ROOT))
 	subdirs, files = create_python_catolog()
 	for subdir in subdirs:
 		check_call('adb shell mkdir {0}/{1}'.format(PYLIBS_TARGET_ROOT, subdir))
