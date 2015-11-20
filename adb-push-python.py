@@ -11,12 +11,13 @@ with open(os.path.join(DIR_HERE, 'ndk.pth')) as ndklink:
     exec(ndklink.read())
 
 
-MY_ABI='armeabi-v7a'
-PYTHON3_MAJOR_VERSION='5'
-C_RUNTIME_DIR_FOR_MY_ABI=os.path.normpath(os.path.join(NDK_DIR, 'sources/crystax/libs/armeabi-v7a/thumb'))
-C_RUNTIME_FOR_MY_ABI=os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
-PYLIBS_TARGET_ROOT='/data/local/tmp/pylibs3{0}'.format(PYTHON3_MAJOR_VERSION)
-PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.{0}/libs'.format(PYTHON3_MAJOR_VERSION), MY_ABI))
+MY_ABI = 'armeabi-v7a'
+C_RUNTIME_DIR_FOR_MY_ABI = os.path.normpath(os.path.join(NDK_DIR, 'sources/crystax/libs/armeabi-v7a/thumb'))
+C_RUNTIME_FOR_MY_ABI = os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
+PYLIBS_TARGET_ROOT = '/data/local/tmp/pylibs'
+PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.5/libs', MY_ABI))
+TESTS_TARGET_ROOT = '/data/local/tmp/tests'
+TESTS_SRC_ROOT = os.path.normpath(os.path.join(DIR_HERE, 'tests'))
 
 INTERPRETER = \
 '''#!/system/bin/sh
@@ -66,8 +67,9 @@ def adb_create_file_from_text(txt, dst_pth):
 
 
 def main():
+    # python
 	check_call('adb shell rm -rf {0}'.format(PYLIBS_TARGET_ROOT))
-	check_call('adb shell mkdir {0}'.format(PYLIBS_TARGET_ROOT))
+	check_call('adb shell mkdir -p {0}'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb shell mkdir {0}/libs'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb push {0} {1}/libs'.format(C_RUNTIME_FOR_MY_ABI, PYLIBS_TARGET_ROOT))
 	subdirs, files = create_python_catolog()
@@ -76,6 +78,15 @@ def main():
 	for src_pth, arc_pth in files:
 		check_call('adb push {0} {1}/{2}'.format(src_pth, PYLIBS_TARGET_ROOT, arc_pth))
 	adb_create_file_from_text(INTERPRETER, '{0}/python'.format(PYLIBS_TARGET_ROOT))
+
+    # tests
+	check_call('adb shell rm -rf {0}'.format(TESTS_TARGET_ROOT))
+	check_call('adb shell mkdir -p {0}'.format(TESTS_TARGET_ROOT))
+	for item in sorted(os.listdir(TESTS_SRC_ROOT)):
+		src_path = os.path.join(TESTS_SRC_ROOT, item)
+		tgt_path = '{0}/{1}'.format(TESTS_TARGET_ROOT, item)
+		check_call('adb push {0} {1}'.format(src_path, tgt_path))
+
 	print("Done!")
 
 
