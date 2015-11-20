@@ -18,11 +18,14 @@ PYLIBS_TARGET_ROOT = '/data/local/tmp/pylibs'
 PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.5/libs', MY_ABI))
 TESTS_TARGET_ROOT = '/data/local/tmp/tests'
 TESTS_SRC_ROOT = os.path.normpath(os.path.join(DIR_HERE, 'tests'))
+CERT_FILE_SRC = os.path.normpath(os.path.join(DIR_HERE, 'certdata.pem'))
+CERT_FILE_DST = '{0}/{1}'.format(PYLIBS_TARGET_ROOT, 'libs/certdata.pem')
 
 INTERPRETER = \
 '''#!/system/bin/sh
 DIR_HERE=$(cd ${0%python} && pwd)
 export LD_LIBRARY_PATH=$DIR_HERE/libs
+export SSL_CERT_FILE=$DIR_HERE/libs/certdata.pem
 exec $DIR_HERE/python.bin $*
 '''
 
@@ -67,11 +70,16 @@ def adb_create_file_from_text(txt, dst_pth):
 
 
 def main():
-    # python
+	if not os.path.isfile(CERT_FILE_SRC):
+		print("ABORTED: file '{0}' not found, it must be downloaded first.".format(os.path.basename(CERT_FILE_SRC)))
+		return
+
+	# python
 	check_call('adb shell rm -rf {0}'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb shell mkdir -p {0}'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb shell mkdir {0}/libs'.format(PYLIBS_TARGET_ROOT))
 	check_call('adb push {0} {1}/libs'.format(C_RUNTIME_FOR_MY_ABI, PYLIBS_TARGET_ROOT))
+	check_call('adb push {0} {1}'.format(CERT_FILE_SRC, CERT_FILE_DST))
 	subdirs, files = create_python_catolog()
 	for subdir in subdirs:
 		check_call('adb shell mkdir {0}/{1}'.format(PYLIBS_TARGET_ROOT, subdir))
@@ -79,7 +87,7 @@ def main():
 		check_call('adb push {0} {1}/{2}'.format(src_pth, PYLIBS_TARGET_ROOT, arc_pth))
 	adb_create_file_from_text(INTERPRETER, '{0}/python'.format(PYLIBS_TARGET_ROOT))
 
-    # tests
+	# tests
 	check_call('adb shell rm -rf {0}'.format(TESTS_TARGET_ROOT))
 	check_call('adb shell mkdir -p {0}'.format(TESTS_TARGET_ROOT))
 	for item in sorted(os.listdir(TESTS_SRC_ROOT)):
