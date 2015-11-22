@@ -267,7 +267,6 @@ class Ping(object):
             receive_time = default_timer()
 
             packet_data, address = current_socket.recvfrom(ICMP_MAX_RECV)
-            print("len(packet_data)={0}".format(len(packet_data)))
 
             icmp_header = HeaderInformation(
                 names=[
