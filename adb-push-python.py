@@ -5,17 +5,22 @@ import os.path
 import subprocess
 import shlex
 import tempfile
+import sys
 
 DIR_HERE=os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
 with open(os.path.join(DIR_HERE, 'ndk.pth')) as ndklink:
     exec(ndklink.read())
 
+PY2 = (len(filter(lambda x: x == "-2", sys.argv)) != 0)
 
 MY_ABI = 'armeabi-v7a'
 C_RUNTIME_DIR_FOR_MY_ABI = os.path.normpath(os.path.join(NDK_DIR, 'sources/crystax/libs/armeabi-v7a/thumb'))
 C_RUNTIME_FOR_MY_ABI = os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
 PYLIBS_TARGET_ROOT = '/data/local/tmp/pylibs'
-PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.5/libs', MY_ABI))
+if PY2:
+	PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/2.7/libs', MY_ABI))
+else:
+	PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.5/libs', MY_ABI))
 TESTS_TARGET_ROOT = '/data/local/tmp/tests'
 TESTS_SRC_ROOT = os.path.normpath(os.path.join(DIR_HERE, 'tests'))
 CERT_FILE_SRC = os.path.normpath(os.path.join(DIR_HERE, 'certdata.pem'))
@@ -70,8 +75,10 @@ def adb_create_file_from_text(txt, dst_pth):
 
 
 def main():
+	# check presence of latest CA cerificates for OpenSSL
 	if not os.path.isfile(CERT_FILE_SRC):
-		print("ABORTED: file '{0}' not found, it must be downloaded first.".format(os.path.basename(CERT_FILE_SRC)))
+		print("ABORTED: file '{0}' not found, it must be downloaded first."
+			.format(os.path.basename(CERT_FILE_SRC)))
 		return
 
 	# python
