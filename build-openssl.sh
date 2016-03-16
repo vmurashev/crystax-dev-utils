@@ -4,6 +4,9 @@ DIR_HERE=$(cd $(dirname $0) && pwd)
 DIR_EXTERNALS=$DIR_HERE/externals
 DIR_OBJ_ROOT=$DIR_HERE/obj
 
+mkdir -p $DIR_EXTERNALS
+mkdir -p $DIR_OBJ_ROOT
+
 OPENSSL_VERSION='1.0.1p'
 OPENSSL_URL="https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz"
 OPENSSL_ARC_NAME=$(basename $OPENSSL_URL)

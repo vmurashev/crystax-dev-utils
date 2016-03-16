@@ -2,6 +2,7 @@
 DIR_HERE=$(cd $(dirname $0) && pwd)
 DOWNLOAD_DIR=$DIR_HERE/downloads
 
+mkdir -p ~/crystax
 CRYSTAX_BUILDS_ROOT=$(cd ~/crystax && pwd)
 CRYSTAX_LATEST_BUILD_FILE="$DOWNLOAD_DIR/crystax.latest-build"
 if [ -f $CRYSTAX_LATEST_BUILD_FILE ]; then

@@ -4,7 +4,10 @@ DIR_HERE=$(cd $(dirname $0) && pwd)
 DIR_EXTERNALS=$DIR_HERE/externals
 DIR_OBJ_ROOT=$DIR_HERE/obj
 
-PYTHON_URL='https://www.python.org/ftp/python/2.7.10/Python-2.7.10.tar.xz'
+mkdir -p $DIR_EXTERNALS
+mkdir -p $DIR_OBJ_ROOT
+
+PYTHON_URL='https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tar.xz'
 PYTHON_ARC_NAME=$(basename $PYTHON_URL)
 
 SRC_DIR=$DIR_EXTERNALS/python27
