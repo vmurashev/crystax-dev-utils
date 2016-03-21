@@ -33,7 +33,7 @@ build_host_python ()
     local OBJ_SYS_DIR="$DIR_OBJ_ROOT/host-python27-$SYSTEM"
     local SYS_OPTIONS=""
     case $SYSTEM in
-        windows-x86_64)
+        windows)
             SYS_OPTIONS="--mingw"
             ;;
         windows-x86_64)
