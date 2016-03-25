@@ -13,9 +13,9 @@ DIR_OBJ_ROOT=$DIR_HERE/obj
 mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
-PYTHON_URL='https://api.github.com/repos/crystax/android-vendor-python-2-7/tarball/master'
-PYTHON_ARC_NAME='vendor-host-python27.tgz'
-SRC_DIR="$DIR_EXTERNALS/vendor-host-python27"
+PYTHON_URL='https://api.github.com/repos/crystax/android-vendor-python-3-5/tarball/master'
+PYTHON_ARC_NAME='vendor-host-python35.tgz'
+SRC_DIR="$DIR_EXTERNALS/vendor-host-python35"
 
 if [ ! -d $SRC_DIR ]; then
     if [ ! -f "$DIR_EXTERNALS/$PYTHON_ARC_NAME" ]; then
@@ -26,14 +26,14 @@ if [ ! -d $SRC_DIR ]; then
 fi
 
 for system in $(echo $SYSTEMS_ALL | tr ',' ' '); do
-    rm -f "/var/tmp/ndk-cache-$USER/ndk-vendor-host-python2.7-$system.tar.xz"
+    rm -f "/var/tmp/ndk-cache-$USER/ndk-vendor-host-python3.5-$system.tar.xz"
 done
 
 # $1: system
 build_host_python ()
 {
     local SYSTEM=$1
-    local OBJ_SYS_DIR="$DIR_OBJ_ROOT/vendor-host-python27-$SYSTEM"
+    local OBJ_SYS_DIR="$DIR_OBJ_ROOT/vendor-host-python35-$SYSTEM"
     local SYS_OPTIONS=""
     case $SYSTEM in
         windows)
