@@ -2,6 +2,7 @@
 
 if [ "$(uname -s)" = "Darwin" ]; then
     SYSTEMS_ALL='darwin-x86,darwin-x86_64'
+    export PATH="$(brew --prefix coreutils)/libexec/gnubin:/usr/local/bin/:$PATH"
 else
     SYSTEMS_ALL='linux-x86,linux-x86_64,windows,windows-x86_64'
 fi
