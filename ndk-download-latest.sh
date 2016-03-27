@@ -18,12 +18,12 @@ curl  -L -o $CRYSTAX_LATEST_BUILD_FILE_TMP $CRYSTAX_LATEST_BUILD_URL
 CRYSTAX_LAST_DWNL_BUILD='<unknown>'
 CRYSTAX_LATEST_BUILD=$(cat $CRYSTAX_LATEST_BUILD_FILE_TMP)
 if [ -f $CRYSTAX_LATEST_BUILD_FILE ]; then
-	CRYSTAX_LAST_DWNL_BUILD=$(cat $CRYSTAX_LATEST_BUILD_FILE)
+    CRYSTAX_LAST_DWNL_BUILD=$(cat $CRYSTAX_LATEST_BUILD_FILE)
 fi
 echo "crystax last downloaded build: '$CRYSTAX_LAST_DWNL_BUILD'"
 echo "crystax latest build: '$CRYSTAX_LATEST_BUILD'"
 if [ "$CRYSTAX_LAST_DWNL_BUILD" = "$CRYSTAX_LATEST_BUILD" ]; then
-    echo "Nothing to do: latest build $CRYSTAX_LATEST_BUILD alredy downloaded"
+    echo "Nothing to do: latest build '$CRYSTAX_LATEST_BUILD' already downloaded"
     exit 0
 fi
 
@@ -63,4 +63,3 @@ else
   curl  -L -o $CRYSTAX_TARGET_ARC $CRYSTAX_URL
 fi
 mv $CRYSTAX_LATEST_BUILD_FILE_TMP $CRYSTAX_LATEST_BUILD_FILE
-
