@@ -35,10 +35,15 @@ PY2 = (len(filter(lambda x: x == "-2", sys.argv)) != 0)
 C_RUNTIME_DIR_FOR_MY_ABI = os.path.normpath(os.path.join(NDK_DIR, 'sources/crystax/libs', MY_ABI))
 C_RUNTIME_FOR_MY_ABI = os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
 PYLIBS_TARGET_ROOT = '/data/local/tmp/pylibs'
+TARGET_BIN = '/data/local/tmp/bin'
+
 if PY2:
     PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/2.7/shared', MY_ABI))
+    PYTHON_STATIC = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/2.7/static/bin', MY_ABI, 'python'))
 else:
     PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.5/shared', MY_ABI))
+    PYTHON_STATIC = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/3.5/static/bin', MY_ABI, 'python'))
+
 TESTS_TARGET_ROOT = '/data/local/tmp/tests'
 TESTS_SRC_ROOT = os.path.normpath(os.path.join(DIR_HERE, 'tests'))
 CERT_FILE_SRC = os.path.normpath(os.path.join(DIR_HERE, 'certdata.pem'))
@@ -80,6 +85,10 @@ def main():
         return
 
     # python
+    check_call('adb shell rm -rf {0}'.format(TARGET_BIN))
+    check_call('adb shell mkdir -p {0}'.format(TARGET_BIN))
+    check_call('adb push {0} {1}'.format(PYTHON_STATIC, TARGET_BIN))
+
     check_call('adb shell rm -rf {0}'.format(PYLIBS_TARGET_ROOT))
     check_call('adb shell mkdir -p {0}'.format(PYLIBS_TARGET_ROOT))
     check_call('adb shell mkdir -p {0}/libs'.format(PYLIBS_TARGET_ROOT))
