@@ -22,6 +22,7 @@ if len(sys.argv) > 1 and sys.argv[1] in SUPPORTED_ABI:
     MY_ABI = sys.argv[1]
 else:
     print("ABORTED: first argument must be ABI of target device.")
+    print("Supported values: {0}".format(', '.join(SUPPORTED_ABI)))
     exit(0)
 
 
@@ -41,15 +42,6 @@ else:
 TESTS_TARGET_ROOT = '/data/local/tmp/tests'
 TESTS_SRC_ROOT = os.path.normpath(os.path.join(DIR_HERE, 'tests'))
 CERT_FILE_SRC = os.path.normpath(os.path.join(DIR_HERE, 'certdata.pem'))
-CERT_FILE_DST = '{0}/{1}'.format(PYLIBS_TARGET_ROOT, 'libs/certdata.pem')
-
-INTERPRETER = \
-'''#!/system/bin/sh
-DIR_HERE=$(cd ${0%python} && pwd)
-export LD_LIBRARY_PATH=$DIR_HERE/libs
-export SSL_CERT_FILE=$DIR_HERE/libs/certdata.pem
-exec $DIR_HERE/python.bin $*
-'''
 
 
 def check_call(cmdline):
@@ -76,19 +68,8 @@ def create_python_catolog():
                 subdir_catalog.append(item_arc_pth)
                 subdirs.append((item_src_pth, item_arc_pth))
             else:
-                if item_arc_pth == 'python':
-                    item_arc_pth = 'python.bin'
                 file_catalog.append((item_src_pth, item_arc_pth))
     return subdir_catalog, file_catalog
-
-
-def adb_create_file_from_text(txt, dst_pth):
-    fd, fname = tempfile.mkstemp()
-    with os.fdopen(fd, "w") as fobj:
-        fobj.write(txt)
-    check_call('adb push {0} {1}'.format(fname, dst_pth))
-    check_call('adb shell chmod 0777 {0}'.format(dst_pth))
-    os.unlink(fname)
 
 
 def main():
@@ -101,19 +82,18 @@ def main():
     # python
     check_call('adb shell rm -rf {0}'.format(PYLIBS_TARGET_ROOT))
     check_call('adb shell mkdir -p {0}'.format(PYLIBS_TARGET_ROOT))
-    check_call('adb shell mkdir {0}/libs'.format(PYLIBS_TARGET_ROOT))
+    check_call('adb shell mkdir -p {0}/libs'.format(PYLIBS_TARGET_ROOT))
     check_call('adb push {0} {1}/libs'.format(C_RUNTIME_FOR_MY_ABI, PYLIBS_TARGET_ROOT))
-    check_call('adb push {0} {1}'.format(CERT_FILE_SRC, CERT_FILE_DST))
     subdirs, files = create_python_catolog()
     for subdir in subdirs:
-        check_call('adb shell mkdir {0}/{1}'.format(PYLIBS_TARGET_ROOT, subdir))
+        check_call('adb shell mkdir -p {0}/{1}'.format(PYLIBS_TARGET_ROOT, subdir))
     for src_pth, arc_pth in files:
         check_call('adb push {0} {1}/{2}'.format(src_pth, PYLIBS_TARGET_ROOT, arc_pth))
-    adb_create_file_from_text(INTERPRETER, '{0}/python'.format(PYLIBS_TARGET_ROOT))
 
     # tests
     check_call('adb shell rm -rf {0}'.format(TESTS_TARGET_ROOT))
     check_call('adb shell mkdir -p {0}'.format(TESTS_TARGET_ROOT))
+    check_call('adb push {0} {1}'.format(CERT_FILE_SRC, '{0}/{1}'.format(TESTS_TARGET_ROOT, 'certdata.pem')))
     for item in sorted(os.listdir(TESTS_SRC_ROOT)):
         src_path = os.path.join(TESTS_SRC_ROOT, item)
         tgt_path = '{0}/{1}'.format(TESTS_TARGET_ROOT, item)
@@ -124,4 +104,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
