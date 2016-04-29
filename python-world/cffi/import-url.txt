@@ -1,0 +1,1 @@
+https://pypi.python.org/packages/source/c/cffi/cffi-1.5.2.tar.gz
