@@ -2,7 +2,6 @@
 DIR_HERE=$(cd $(dirname $0) && pwd)
 DOWNLOAD_DIR=$DIR_HERE/downloads
 
-mkdir -p ~/crystax
 CRYSTAX_BUILDS_ROOT="$DIR_HERE/crystax"
 mkdir -p $CRYSTAX_BUILDS_ROOT
 CRYSTAX_LATEST_BUILD_FILE="$DOWNLOAD_DIR/crystax.latest-build"
@@ -40,4 +39,3 @@ git checkout --
 git reset --hard
 git clean -df
 git status
-
