@@ -7,8 +7,8 @@ DIR_OBJ_ROOT=$DIR_HERE/obj
 mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
-OPENSSL_VERSION='1.0.1p'
-OPENSSL_URL="https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz"
+OPENSSL_VERSION='1.0.1s'
+OPENSSL_URL="ftp://ftp.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz"
 OPENSSL_ARC_NAME=$(basename $OPENSSL_URL)
 
 SRC_DIR=$DIR_EXTERNALS/"openssl-$OPENSSL_VERSION"
@@ -27,4 +27,3 @@ ABI_BUILD=$ABI_ALL
 #ABI_BUILD=armeabi-v7a
 
 $NDK_DIR/build/tools/build-target-openssl.sh --verbose --abis=$ABI_BUILD --build-dir=$OBJ_DIR $SRC_DIR
-
