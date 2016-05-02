@@ -7,7 +7,7 @@ DIR_OBJ_ROOT=$DIR_HERE/obj
 mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
-OPENSSL_VERSION='1.0.1s'
+OPENSSL_VERSION='1.0.2g'
 OPENSSL_URL="ftp://ftp.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz"
 OPENSSL_ARC_NAME=$(basename $OPENSSL_URL)
 
@@ -22,7 +22,7 @@ if [ ! -d $SRC_DIR ]; then
     tar xvf "$DIR_EXTERNALS/$OPENSSL_ARC_NAME" --strip-components=1 -C $SRC_DIR
 fi
 
-ABI_ALL='armeabi,armeabi-v7a,x86,mips,armeabi-v7a-hard,arm64-v8a,x86_64,mips64'
+ABI_ALL='armeabi,armeabi-v7a,armeabi-v7a-hard,x86,mips,arm64-v8a,x86_64,mips64'
 ABI_BUILD=$ABI_ALL
 #ABI_BUILD=armeabi-v7a
 
