@@ -37,6 +37,8 @@ C_RUNTIME_FOR_MY_ABI = os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
 PYLIBS_TARGET_ROOT = '/data/local/tmp/pylibs'
 TARGET_BIN = '/data/local/tmp/bin'
 
+OPENSSL_TOOL = os.path.normpath(os.path.join(NDK_DIR, 'sources/openssl/1.0.2/bin', MY_ABI, 'openssl'))
+
 if PY2:
     PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/2.7/shared', MY_ABI))
     PYTHON_STATIC = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/2.7/static/bin', MY_ABI, 'python'))
@@ -98,6 +100,9 @@ def main():
         check_call('adb shell mkdir -p {0}/{1}'.format(PYLIBS_TARGET_ROOT, subdir))
     for src_pth, arc_pth in files:
         check_call('adb push {0} {1}/{2}'.format(src_pth, PYLIBS_TARGET_ROOT, arc_pth))
+
+    # openssl tool
+    check_call('adb push {0} {1}'.format(OPENSSL_TOOL, TARGET_BIN))
 
     # tests
     check_call('adb shell rm -rf {0}'.format(TESTS_TARGET_ROOT))
