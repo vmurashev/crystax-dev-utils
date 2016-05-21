@@ -30,7 +30,7 @@ DIR_HERE=os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
 with open(os.path.join(DIR_HERE, 'ndk.pth')) as ndklink:
     exec(ndklink.read())
 
-PY2 = (len(filter(lambda x: x == "-2", sys.argv)) != 0)
+PY2 = (len([x for x in sys.argv if x == "-2"]) != 0)
 
 C_RUNTIME_DIR_FOR_MY_ABI = os.path.normpath(os.path.join(NDK_DIR, 'sources/crystax/libs', MY_ABI))
 C_RUNTIME_FOR_MY_ABI = os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
