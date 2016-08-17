@@ -27,4 +27,4 @@ ABI_ALL='armeabi,armeabi-v7a,armeabi-v7a-hard,x86,mips,arm64-v8a,x86_64,mips64'
 ABI_BUILD=$ABI_ALL
 #ABI_BUILD=armeabi-v7a
 
-$NDK_DIR/build/tools/build-target-openssl.sh --verbose --abis=$ABI_BUILD --build-dir=$OBJ_DIR $SRC_DIR
+$NDK_DIR/build/instruments/build-target-openssl.sh --verbose --abis=$ABI_BUILD --build-dir=$OBJ_DIR $SRC_DIR

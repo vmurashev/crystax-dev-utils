@@ -45,7 +45,7 @@ build_host_python ()
             ;;
     esac
 
-    $NDK_DIR/build/tools/build-vendor-host-python.sh --verbose \
+    $NDK_DIR/build/instruments/build-vendor-host-python.sh --verbose \
         --systems=$SYSTEM $SYS_OPTIONS \
         --build-dir=$OBJ_DIR --package-dir="$DIR_HERE/pkg" \
         $SRC_DIR
