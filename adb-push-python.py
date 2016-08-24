@@ -37,7 +37,7 @@ C_RUNTIME_FOR_MY_ABI = os.path.join(C_RUNTIME_DIR_FOR_MY_ABI, 'libcrystax.so')
 PYLIBS_TARGET_ROOT = '/data/local/tmp/pylibs'
 TARGET_BIN = '/data/local/tmp/bin'
 
-OPENSSL_TOOL = os.path.normpath(os.path.join(NDK_DIR, 'sources/openssl/1.0.2/bin', MY_ABI, 'openssl'))
+OPENSSL_TOOL = os.path.normpath(os.path.join(NDK_DIR, 'sources/openssl/1.0.2h/bin', MY_ABI, 'openssl'))
 
 if PY2:
     PYLIBS_SRC_ROOT = os.path.normpath(os.path.join(NDK_DIR, 'sources/python/2.7/shared', MY_ABI))
