@@ -7,7 +7,7 @@ DIR_OBJ_ROOT=$DIR_HERE/obj
 mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
-PYTHON_URL='https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tar.xz'
+PYTHON_URL='https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tar.xz'
 PYTHON_ARC_NAME=$(basename $PYTHON_URL)
 
 SRC_DIR=$DIR_EXTERNALS/python35
