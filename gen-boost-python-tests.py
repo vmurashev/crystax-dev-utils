@@ -1,12 +1,16 @@
 import argparse
+import os
 import os.path
 import inspect
+import shutil
 
 
 JAM_SIMPLE_INSTRUCTIONS = ['import', 'lib', 'use-project', 'project', 'local', 'test-suite']
 JAM_COMPLEX_INSTRUCTIONS = ['if', 'rule']
 TEST_OPS_TO_SKIP = ['compile', 'py-compile', 'py-compile-fail']
 KNOWN_TEST_TYPES = ['run', 'bpl-test', 'py-run', 'python-extension']
+
+NDK_BOOST_VERSION = '1.61.0'
 
 
 class GenException(Exception):
@@ -34,9 +38,112 @@ class BoostPythonTest_PyScript:
         print("!{:20}## py_scripts={} ## depends={}".format('TEST(PYD)-{}'.format(short_name), py_scripts, depends))
 
 
+def write_text_lines_in_file(fname, text_list):
+    with open(fname, mode='wt') as fh:
+        for ln in text_list:
+            fh.writelines([ln, '\n'])
+
+
 class BuildContext:
-    def __init__(self, obj_root):
-        self._obj_root = obj_root
+    def __init__(self, build_root,*, py2):
+        self._build_root = os.path.normpath(os.path.abspath(build_root))
+        self._is_py2 = py2
+
+    def get_build_root(self):
+        return self._build_root
+
+    def generate_android_mk_for_executable(self, *, exe_name, sources, jni_dir):
+        text_list = [
+            'include $(CLEAR_VARS)',
+            'LOCAL_PATH := $(call my-dir)',
+            'LOCAL_MODULE := {}'.format(exe_name),
+            'LOCAL_SRC_FILES := \\',
+        ]
+
+        idx = 0
+        for src in sources:
+            idx += 1
+            if idx < len(sources):
+                text_list += [ '    {} \\'.format(src)]
+            else:
+                text_list += [ '    {}'.format(src)]
+
+        if self._is_py2:
+            text_list += [
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
+            ]
+        else:
+            text_list += [
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
+            ]
+
+        text_list += [
+            'LOCAL_LDLIBS := -lz',
+            'include $(BUILD_EXECUTABLE)',
+        ]
+
+        if self._is_py2:
+            text_list += [
+                '$(call import-module,python/2.7)',
+            ]
+        else:
+            text_list += [
+                '$(call import-module,python/3.5)',
+            ]
+
+        text_list += [
+            '$(call import-module,boost/{})'.format(NDK_BOOST_VERSION),
+        ]
+
+        android_mk = os.path.join(jni_dir, 'Android.mk')
+        write_text_lines_in_file(android_mk, text_list)
+
+
+    def generate_android_mk_for_python_module(self, *, pyd_name, sources, jni_dir):
+        text_list = [
+            'include $(CLEAR_VARS)',
+            'LOCAL_PATH := $(call my-dir)',
+            'LOCAL_MODULE := {}'.format(pyd_name),
+            'LOCAL_SRC_FILES := \\',
+        ]
+
+        idx = 0
+        for src in sources:
+            idx += 1
+            if idx < len(sources):
+                text_list += [ '    {} \\'.format(src)]
+            else:
+                text_list += [ '    {}'.format(src)]
+
+        if self._is_py2:
+            text_list += [
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
+            ]
+        else:
+            text_list += [
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
+            ]
+
+        text_list += [
+            'LOCAL_LDLIBS := -lz',
+            'include $(BUILD_SHARED_LIBRARY)',
+        ]
+
+        if self._is_py2:
+            text_list += [
+                '$(call import-module,python/2.7)',
+            ]
+        else:
+            text_list += [
+                '$(call import-module,python/3.5)',
+            ]
+
+        text_list += [
+            '$(call import-module,boost/{})'.format(NDK_BOOST_VERSION),
+        ]
+
+        android_mk = os.path.join(jni_dir, 'Android.mk')
+        write_text_lines_in_file(android_mk, text_list)
 
 
 class BuildItem:
@@ -44,14 +151,32 @@ class BuildItem:
         self.short_name = short_name
         self.jamfile = jamfile
         self.jamline = jamline
-        self.build_list_files = build_list_files
+        self.build_list = build_list_files
+        self.pyext_name = pyext_name
         print("!{:20}## pyext = {} ## build_list={}".format('BUILD-{}'.format(short_name), pyext_name, build_list_files))
+        if not build_list_files:
+            raise GenException("Can't parse '{}' - got empty build list at line {}".format(jamfile, jamline))
 
     def generate(self, ctx):
-        pass
+        jamdir = os.path.normpath(os.path.abspath(os.path.dirname(self.jamfile)))
+        sources = []
+        for src in self.build_list:
+            src_path = os.path.normpath(os.path.abspath(os.path.join(jamdir, src)))
+            if not os.path.isfile(src_path):
+                raise GenException("Can't parse '{}' at line {} - file not found: '{}' ".format(self.jamfile, self.jamline, src_path))
+            sources.append(src_path)
+        jni_dir = os.path.join(ctx.get_build_root(), self.short_name, 'jni')
+        os.makedirs(jni_dir, exist_ok=True)
+
+        if self.pyext_name is None:
+            exe_name = os.path.splitext(os.path.basename(sources[0]))[0]
+            ctx.generate_android_mk_for_executable(exe_name=exe_name, sources=sources, jni_dir=jni_dir)
+        else:
+            ctx.generate_android_mk_for_python_module(pyd_name=self.pyext_name, sources=sources, jni_dir=jni_dir)
 
     def get_test_short_name(self):
-        pass
+        return self.short_name
+
 
 def get_tokens_from_section(section_index, tokens):
     result = []
@@ -141,7 +266,10 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
         if action not in KNOWN_TEST_TYPES:
             raise GenException("Can't parse '{}' - got unknown type of test '{}' at line {}".format(jamfile, action, lnnum1))
         x = []
+        windows_only = False
         for tk, lnnum in s:
+            if '<conditional>@require-windows' in tk:
+                windows_only = True
             if ('<' in tk) or ('>' in tk) or ('$' in tk) or ('exec-dynamic' in tk) or ('/python/' in tk):
                 continue
             x.append(tk)
@@ -150,6 +278,8 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
                 del x[i]
             else:
                 break
+        if windows_only:
+            continue
         as_text = ' '.join(x)
         if as_text in suits_set:
             continue
@@ -261,6 +391,16 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
             raise GenException("Can't parse '{}' - got unknown type of test '{}' at line {}".format(jamfile, entry[0], lnnum))
 
 
+def clean_dir(dname):
+    fsitems = os.listdir(dname)
+    for item in fsitems:
+        item_path = os.path.join(dname, item)
+        if os.path.isdir(item_path):
+            shutil.rmtree(item_path)
+        else:
+            os.remove(item_path)
+
+
 def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
     if not jamfiles:
         raise Exception("List of jamfiles can't be empty")
@@ -279,27 +419,34 @@ def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
     print("Got {0} boost-python tests from specified jamfiles".format(len(tests)))
     print("Got {0} build items from specified jamfiles".format(len(builds)))
 
-#    ctx2 = None
-#    ctx3 = None
-#    if objdir_py2:
-#        ctx2 = BuildContext(objdir_py2)
-#    if objdir_py3:
-#        ctx3 = BuildContext(objdir_py3)
+    ctx2 = None
+    ctx3 = None
+    if objdir_py2:
+        clean_dir(objdir_py2)
+        ctx2 = BuildContext(objdir_py2, py2=True)
+    if objdir_py3:
+        clean_dir(objdir_py3)
+        ctx3 = BuildContext(objdir_py3, py2=False)
 
-#    names2 = []
-#    names3 = []
-#    for tst in tests:
-#        if ctx2:
-#            tst.generate(ctx2)
-#            tst_name = tst.get_test_short_name()
-#            names2.append(tst_name)
-#        if ctx3:
-#            tst.generate(ctx3)
-#            tst_name = tst.get_test_short_name()
-#            names3.append(tst_name)
+    build_names2 = []
+    build_names3 = []
+    for build_item in builds:
+        if ctx2:
+            build_item.generate(ctx2)
+            build_name = build_item.get_test_short_name()
+            build_names2.append(build_name)
+        if ctx3:
+            build_item.generate(ctx3)
+            build_name = build_item.get_test_short_name()
+            build_names3.append(build_name)
 
-    raise GenException("TODO - Generate tests list")
+    if build_names2:
+        build_info2 = os.path.join(objdir_py2, 'build-items.txt')
+        write_text_lines_in_file(build_info2, build_names2)
 
+    if build_names3:
+        build_info3 = os.path.join(objdir_py3, 'build-items.txt')
+        write_text_lines_in_file(build_info3, build_names3)
 
 
 if __name__ == '__main__':
@@ -312,4 +459,4 @@ if __name__ == '__main__':
         generate_boost_python_tests(args.jamfiles, args.objdir_py2, args.objdir_py3)
     except GenException as ex:
         print("ERROR: {}".format(ex))
-        exit(1)
+        exit(126)
