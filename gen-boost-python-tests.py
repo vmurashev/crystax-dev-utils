@@ -3,6 +3,7 @@ import os
 import os.path
 import inspect
 import shutil
+import json
 
 
 JAM_SIMPLE_INSTRUCTIONS = ['import', 'lib', 'use-project', 'project', 'local', 'test-suite']
@@ -11,6 +12,12 @@ TEST_OPS_TO_SKIP = ['compile', 'py-compile', 'py-compile-fail']
 KNOWN_TEST_TYPES = ['run', 'bpl-test', 'py-run', 'python-extension']
 
 NDK_BOOST_VERSION = '1.61.0'
+
+
+def write_text_lines_in_file(fname, text_list):
+    with open(fname, mode='wt') as fh:
+        for ln in text_list:
+            fh.writelines([ln, '\n'])
 
 
 class GenException(Exception):
@@ -22,26 +29,106 @@ class GenException(Exception):
 
 class BoostPythonTest_Run:
     def __init__(self, *, short_name, jamfile, jamline, arg_list_files, exe_from_depends):
+        self.short_name = short_name
         self.jamfile = jamfile
         self.jamline = jamline
         self.exe_from_depends = exe_from_depends
         self.arg_list_files = arg_list_files
         print("!{:20}## exe={} ## argv={}".format('TEST(RUN)-{}'.format(short_name), exe_from_depends, arg_list_files))
 
+    def get_short_name(self):
+        return self.short_name
+
+    def generate(self, ctx):
+        jamdir = os.path.normpath(os.path.abspath(os.path.dirname(self.jamfile)))
+        args = []
+        for arg in self.arg_list_files:
+            arg_path = os.path.normpath(os.path.abspath(os.path.join(jamdir, arg)))
+            if not os.path.isfile(arg_path):
+                raise GenException("Can't parse '{}' at line {} - file not found: '{}' ".format(self.jamfile, self.jamline, arg_path))
+            args.append(arg_path)
+
+        description = json.dumps({
+            'mode': 'run-exe',
+            'exe_link': self.exe_from_depends,
+            'argv_files': args,
+        })
+        info_dir = os.path.join(ctx.get_build_root(), self.short_name)
+        os.makedirs(info_dir, exist_ok=True)
+        description_file = os.path.join(info_dir, 'testinfo.json')
+        with open(description_file, mode='wt') as fh:
+            fh.write(description)
+
 
 class BoostPythonTest_PyScript:
     def __init__(self, *, short_name, jamfile, jamline, py_scripts, depends):
+        self.short_name = short_name
         self.jamfile = jamfile
         self.jamline = jamline
         self.depends = depends
         self.py_scripts = py_scripts
         print("!{:20}## py_scripts={} ## depends={}".format('TEST(PYD)-{}'.format(short_name), py_scripts, depends))
 
+    def get_short_name(self):
+        return self.short_name
 
-def write_text_lines_in_file(fname, text_list):
-    with open(fname, mode='wt') as fh:
-        for ln in text_list:
-            fh.writelines([ln, '\n'])
+    def generate(self, ctx):
+        jamdir = os.path.normpath(os.path.abspath(os.path.dirname(self.jamfile)))
+        py_scripts = []
+        for fname in self.py_scripts:
+            fpath = os.path.normpath(os.path.abspath(os.path.join(jamdir, fname)))
+            if not os.path.isfile(fpath):
+                raise GenException("Can't parse '{}' at line {} - file not found: '{}' ".format(self.jamfile, self.jamline, fpath))
+            py_scripts.append(fpath)
+
+        description = json.dumps({
+            'mode': 'run-py',
+            'pyd_links': self.depends,
+            'py_scripts': py_scripts,
+        })
+        info_dir = os.path.join(ctx.get_build_root(), self.short_name)
+        os.makedirs(info_dir, exist_ok=True)
+        description_file = os.path.join(info_dir, 'testinfo.json')
+        with open(description_file, mode='wt') as fh:
+            fh.write(description)
+
+
+class BuildItem:
+    def __init__(self, *, short_name, jamfile, jamline, build_list_files, pyext_name):
+        self.short_name = short_name
+        self.jamfile = jamfile
+        self.jamline = jamline
+        self.build_list = build_list_files
+        self.pyext_name = pyext_name
+        print("!{:20}## pyext = {} ## build_list={}".format('BUILD-{}'.format(short_name), pyext_name, build_list_files))
+        if not build_list_files:
+            raise GenException("Can't parse '{}' - got empty build list at line {}".format(jamfile, jamline))
+
+    def get_short_name(self):
+        return self.short_name
+
+    def generate(self, ctx):
+        jamdir = os.path.normpath(os.path.abspath(os.path.dirname(self.jamfile)))
+        sources = []
+        for src in self.build_list:
+            src_path = os.path.normpath(os.path.abspath(os.path.join(jamdir, src)))
+            if not os.path.isfile(src_path):
+                raise GenException("Can't parse '{}' at line {} - file not found: '{}' ".format(self.jamfile, self.jamline, src_path))
+            sources.append(src_path)
+        jni_dir = os.path.join(ctx.get_build_root(), self.short_name, 'jni')
+        os.makedirs(jni_dir, exist_ok=True)
+
+        if self.pyext_name is None:
+            exe_name = os.path.splitext(os.path.basename(sources[0]))[0]
+            ctx.generate_android_mk_for_executable(exe_name=exe_name, sources=sources, jni_dir=jni_dir)
+            description = json.dumps({'exe_name': exe_name})
+        else:
+            ctx.generate_android_mk_for_python_module(pyd_name=self.pyext_name, sources=sources, jni_dir=jni_dir)
+            description = json.dumps({'pyd_name': self.pyext_name})
+
+        description_file = os.path.join(ctx.get_build_root(), self.short_name, 'buildinfo.json')
+        with open(description_file, mode='wt') as fh:
+            fh.write(description)
 
 
 class BuildContext:
@@ -144,38 +231,6 @@ class BuildContext:
 
         android_mk = os.path.join(jni_dir, 'Android.mk')
         write_text_lines_in_file(android_mk, text_list)
-
-
-class BuildItem:
-    def __init__(self, *, short_name, jamfile, jamline, build_list_files, pyext_name):
-        self.short_name = short_name
-        self.jamfile = jamfile
-        self.jamline = jamline
-        self.build_list = build_list_files
-        self.pyext_name = pyext_name
-        print("!{:20}## pyext = {} ## build_list={}".format('BUILD-{}'.format(short_name), pyext_name, build_list_files))
-        if not build_list_files:
-            raise GenException("Can't parse '{}' - got empty build list at line {}".format(jamfile, jamline))
-
-    def generate(self, ctx):
-        jamdir = os.path.normpath(os.path.abspath(os.path.dirname(self.jamfile)))
-        sources = []
-        for src in self.build_list:
-            src_path = os.path.normpath(os.path.abspath(os.path.join(jamdir, src)))
-            if not os.path.isfile(src_path):
-                raise GenException("Can't parse '{}' at line {} - file not found: '{}' ".format(self.jamfile, self.jamline, src_path))
-            sources.append(src_path)
-        jni_dir = os.path.join(ctx.get_build_root(), self.short_name, 'jni')
-        os.makedirs(jni_dir, exist_ok=True)
-
-        if self.pyext_name is None:
-            exe_name = os.path.splitext(os.path.basename(sources[0]))[0]
-            ctx.generate_android_mk_for_executable(exe_name=exe_name, sources=sources, jni_dir=jni_dir)
-        else:
-            ctx.generate_android_mk_for_python_module(pyd_name=self.pyext_name, sources=sources, jni_dir=jni_dir)
-
-    def get_test_short_name(self):
-        return self.short_name
 
 
 def get_tokens_from_section(section_index, tokens):
@@ -430,15 +485,27 @@ def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
 
     build_names2 = []
     build_names3 = []
+    test_names2 = []
+    test_names3 = []
     for build_item in builds:
         if ctx2:
             build_item.generate(ctx2)
-            build_name = build_item.get_test_short_name()
+            build_name = build_item.get_short_name()
             build_names2.append(build_name)
         if ctx3:
             build_item.generate(ctx3)
-            build_name = build_item.get_test_short_name()
+            build_name = build_item.get_short_name()
             build_names3.append(build_name)
+
+    for test_item in tests:
+        if ctx2:
+            test_item.generate(ctx2)
+            test_name = test_item.get_short_name()
+            test_names2.append(test_name)
+        if ctx3:
+            test_item.generate(ctx3)
+            test_name = test_item.get_short_name()
+            test_names3.append(test_name)
 
     if build_names2:
         build_info2 = os.path.join(objdir_py2, 'build-items.txt')
@@ -447,6 +514,14 @@ def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
     if build_names3:
         build_info3 = os.path.join(objdir_py3, 'build-items.txt')
         write_text_lines_in_file(build_info3, build_names3)
+
+    if test_names2:
+        test_info2 = os.path.join(objdir_py2, 'test-items.txt')
+        write_text_lines_in_file(test_info2, test_names2)
+
+    if test_names3:
+        test_info3 = os.path.join(objdir_py3, 'test-items.txt')
+        write_text_lines_in_file(test_info3, test_names3)
 
 
 if __name__ == '__main__':
