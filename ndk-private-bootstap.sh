@@ -16,8 +16,21 @@ if [ ! -f $CRYSTAX_ARC ]; then
     echo "File '$CRYSTAX_ARC' not found"
     exit 1
 fi
+
 NDK_HOME=$CRYSTAX_BUILDS_ROOT/$CRYSTAX_LATEST_BUILD
-echo "NDK_DIR='$NDK_HOME/android-platform-ndk'" > $DIR_HERE/ndk.pth
+
+if [ "$(uname -s)" = "Darwin" ]; then
+    {
+        echo "NDK_DIR='$NDK_HOME/android-platform-ndk'"
+        echo "NDK_PYTHON3='$NDK_HOME/android-platform-ndk/prebuilt/darwin-x86_64/opt/python3.5/python'"
+    } > $DIR_HERE/ndk.pth
+else
+    {
+        echo "NDK_DIR='$NDK_HOME/android-platform-ndk'"
+        echo "NDK_PYTHON3='$NDK_HOME/android-platform-ndk/prebuilt/linux-x86_64/opt/python3.5/python'"
+    } > $DIR_HERE/ndk.pth
+fi
+
 if [ -d $NDK_HOME ]; then
     echo "Already bootstraped: $NDK_HOME"
     exit 0

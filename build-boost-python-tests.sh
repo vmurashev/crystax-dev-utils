@@ -28,8 +28,10 @@ fi
 mkdir -p "$OBJ_DIR2"
 mkdir -p "$OBJ_DIR3"
 
-python3 "$DIR_HERE/gen-boost-python-tests.py" --jamfiles "$SRC_DIR/libs/python/test/Jamfile.v2" --objdir-py2 "OBJ_DIR2"
-#python3 "$DIR_HERE/gen-boost-python-tests.py" --jamfiles "$SRC_DIR/Jamfile.v2" --objdir-py2 "OBJ_DIR2" --objdir-py3 "OBJ_DIR3"
+$NDK_PYTHON3 "$DIR_HERE/gen-boost-python-tests.py" \
+    --jamfiles "$SRC_DIR/libs/python/test/Jamfile.v2" \
+    --objdir-py2 "OBJ_DIR2"
+#   --objdir-py3 "OBJ_DIR3"
 
 echo "ERROR: BASH - TODO!"
 exit 1
