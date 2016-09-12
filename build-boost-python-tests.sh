@@ -9,17 +9,27 @@ mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
 # https://github.com/boostorg/python.git
-BOOST_PYTHON_URL='https://api.github.com/repos/boostorg/python/tarball/master'
-BOOST_PYTHON_ARC_NAME='boost-python.tgz'
-SRC_DIR="$DIR_EXTERNALS/boost-python-tests"
+BOOST_URL='http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.tar.gz'
+BOOST_ARC_NAME=$(basename $BOOST_URL)
+SRC_DIR="$DIR_EXTERNALS/boost"
+
+OBJ_DIR2="$DIR_OBJ_ROOT/bpt2"
+OBJ_DIR3="$DIR_OBJ_ROOT/bpt3"
 
 if [ ! -d $SRC_DIR ]; then
-    if [ ! -f "$DIR_EXTERNALS/$BOOST_PYTHON_ARC_NAME" ]; then
-        curl  -L -o "$DIR_EXTERNALS/$BOOST_PYTHON_ARC_NAME" $BOOST_PYTHON_URL
+    if [ ! -f "$DIR_EXTERNALS/$BOOST_ARC_NAME" ]; then
+        curl  -L -o "$DIR_EXTERNALS/$BOOST_ARC_NAME" $BOOST_URL
     fi
-    FLIST=$(tar -tf $DIR_EXTERNALS/$BOOST_PYTHON_ARC_NAME | grep '/test/..*' | tr '\n' ' ')
     mkdir -p $SRC_DIR
-    tar xvf "$DIR_EXTERNALS/$BOOST_PYTHON_ARC_NAME" --strip-components=2 -C $SRC_DIR $FLIST
+    echo "Unpack: '$DIR_EXTERNALS/$BOOST_ARC_NAME' in '$SRC_DIR'"
+    tar xf "$DIR_EXTERNALS/$BOOST_ARC_NAME" --strip-components=1 -C $SRC_DIR
 fi
 
-echo "ERROR: TODO!"
+mkdir -p "$OBJ_DIR2"
+mkdir -p "$OBJ_DIR3"
+
+python3 "$DIR_HERE/gen-boost-python-tests.py" --jamfiles "$SRC_DIR/libs/python/test/Jamfile.v2" --objdir-py2 "OBJ_DIR2"
+#python3 "$DIR_HERE/gen-boost-python-tests.py" --jamfiles "$SRC_DIR/Jamfile.v2" --objdir-py2 "OBJ_DIR2" --objdir-py3 "OBJ_DIR3"
+
+echo "ERROR: BASH - TODO!"
+exit 1
