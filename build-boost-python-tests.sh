@@ -14,6 +14,10 @@ ABI_BUILD=$ABI_ALL
 mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
+
+FIXED_BOOST_PYTHON_GIT_LINK='https://github.com/vmurashev/python.git'
+FIXED_BOOST_PYTHON_SRC_DIR="$DIR_EXTERNALS/my-boost-python"
+
 # https://github.com/boostorg/python.git
 BOOST_URL='http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.tar.gz'
 BOOST_ARC_NAME=$(basename $BOOST_URL)
@@ -22,13 +26,21 @@ SRC_DIR="$DIR_EXTERNALS/boost"
 OBJ_DIR2="$DIR_OBJ_ROOT/bpt2"
 OBJ_DIR3="$DIR_OBJ_ROOT/bpt3"
 
-if [ ! -d $SRC_DIR ]; then
+if [ ! -d "$FIXED_BOOST_PYTHON_SRC_DIR" ]; then
+    mkdir -p $FIXED_BOOST_PYTHON_SRC_DIR
+    echo "> git clone '$FIXED_BOOST_PYTHON_GIT_LINK' in '$FIXED_BOOST_PYTHON_SRC_DIR'"
+    ( cd $FIXED_BOOST_PYTHON_SRC_DIR && git clone $FIXED_BOOST_PYTHON_GIT_LINK . )
+fi
+
+if [ ! -d "$SRC_DIR" ]; then
     if [ ! -f "$DIR_EXTERNALS/$BOOST_ARC_NAME" ]; then
         curl  -L -o "$DIR_EXTERNALS/$BOOST_ARC_NAME" $BOOST_URL
     fi
     mkdir -p $SRC_DIR
     echo "Unpack: '$DIR_EXTERNALS/$BOOST_ARC_NAME' in '$SRC_DIR'"
     tar xf "$DIR_EXTERNALS/$BOOST_ARC_NAME" --strip-components=1 -C $SRC_DIR
+    rm -rf "$SRC_DIR/libs/python/test"
+    ( cd "$SRC_DIR/libs/python" && ln -s "$FIXED_BOOST_PYTHON_SRC_DIR/test" 'test' )
 fi
 
 # mkdir -p "$OBJ_DIR2"
