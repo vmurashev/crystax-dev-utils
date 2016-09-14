@@ -1,7 +1,8 @@
-/downloads
-/externals
-/crystax
-/pkg
-/obj
-/ndk.pth
-/certdata.pem
+downloads/
+externals/
+crystax/
+pkg/
+obj/
+ndk.pth
+ndk-py3.pth
+certdata.pem

@@ -2,6 +2,7 @@
 
 DIR_HERE=$(cd $(dirname $0) && pwd)
 . $DIR_HERE/ndk.pth
+. $DIR_HERE/ndk-py3.pth
 DIR_EXTERNALS=$DIR_HERE/externals
 DIR_OBJ_ROOT=$DIR_HERE/obj
 
