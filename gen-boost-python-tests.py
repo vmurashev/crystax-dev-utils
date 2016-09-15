@@ -531,7 +531,7 @@ def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
         log_fpath = os.path.join(objdir_py2, 'bpt2-parse.log')
         with open(log_fpath, mode='wt') as fh:
             for ln in logs:
-                fh.write_lines([ln, '\n'])
+                fh.writelines([ln, '\n'])
 
     if objdir_py3:
         log_fpath = os.path.join(objdir_py3, 'bpt3-parse.log')
