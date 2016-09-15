@@ -43,7 +43,7 @@ if [ ! -d "$SRC_DIR" ]; then
     ( cd "$SRC_DIR/libs/python" && ln -s "$FIXED_BOOST_PYTHON_SRC_DIR/test" 'test' )
 fi
 
-# mkdir -p "$OBJ_DIR2"
+mkdir -p "$OBJ_DIR2"
 mkdir -p "$OBJ_DIR3"
 
 BUILD_STAMP_PY2="$OBJ_DIR2/build.stamp"
@@ -70,7 +70,8 @@ if [ -d "$OBJ_DIR2" ]; then
     fi
     if [ ! -f "$PACK_STAMP_PY2" ]; then
         for abi in $(echo $ABI_BUILD | tr ',' ' '); do
-            $NDK_PYTHON3 "$DIR_HERE/pack-boost-python-tests.py" --objdir "$OBJ_DIR2" --abi $abi --tgzout "$DIR_OBJ_ROOT/bpt2-$abi.tgz"
+            $NDK_PYTHON3 "$DIR_HERE/pack-boost-python-tests.py" --target-python python2 \
+                --objdir "$OBJ_DIR2" --abi $abi --tgzout "$DIR_OBJ_ROOT/bpt2-$abi.tgz"
         done
         touch "$PACK_STAMP_PY2"
     fi
@@ -91,7 +92,8 @@ if [ -d "$OBJ_DIR3" ]; then
     fi
     if [ ! -f "$PACK_STAMP_PY3" ]; then
         for abi in $(echo $ABI_BUILD | tr ',' ' '); do
-            $NDK_PYTHON3 "$DIR_HERE/pack-boost-python-tests.py" --objdir "$OBJ_DIR3" --abi $abi --tgzout "$DIR_OBJ_ROOT/bpt3-$abi.tgz"
+            $NDK_PYTHON3 "$DIR_HERE/pack-boost-python-tests.py" --target-python python3 \
+                --objdir "$OBJ_DIR3" --abi $abi --tgzout "$DIR_OBJ_ROOT/bpt3-$abi.tgz"
         done
         touch "$PACK_STAMP_PY3"
     fi

@@ -34,7 +34,6 @@ class BoostPythonTest_Run:
         self.jamline = jamline
         self.exe_from_depends = exe_from_depends
         self.arg_list_files = arg_list_files
-        print("!{:20}## exe={} ## argv={}".format('TEST(RUN)-{}'.format(short_name), exe_from_depends, arg_list_files))
 
     def get_short_name(self):
         return self.short_name
@@ -61,19 +60,22 @@ class BoostPythonTest_Run:
 
 
 class BoostPythonTest_PyScript:
-    def __init__(self, *, short_name, jamfile, jamline, py_scripts, depends):
+    def __init__(self, *, short_name, jamfile, jamline, py_main_script, py_scripts, depends):
         self.short_name = short_name
         self.jamfile = jamfile
         self.jamline = jamline
         self.depends = depends
+        self.py_main_script = py_main_script
         self.py_scripts = py_scripts
-        print("!{:20}## py_scripts={} ## depends={}".format('TEST(PYD)-{}'.format(short_name), py_scripts, depends))
 
     def get_short_name(self):
         return self.short_name
 
     def generate(self, ctx):
         jamdir = os.path.normpath(os.path.abspath(os.path.dirname(self.jamfile)))
+        py_main_script = os.path.normpath(os.path.abspath(os.path.join(jamdir, self.py_main_script)))
+        if not os.path.isfile(py_main_script):
+            raise GenException("Can't parse '{}' at line {} - file not found: '{}' ".format(self.jamfile, self.jamline, py_main_script))
         py_scripts = []
         for fname in self.py_scripts:
             fpath = os.path.normpath(os.path.abspath(os.path.join(jamdir, fname)))
@@ -84,6 +86,7 @@ class BoostPythonTest_PyScript:
         description = json.dumps({
             'mode': 'run-py',
             'pyd_links': self.depends,
+            'py_main_script': py_main_script,
             'py_scripts': py_scripts,
         })
         info_dir = os.path.join(ctx.get_build_root(), self.short_name)
@@ -100,7 +103,6 @@ class BuildItem:
         self.jamline = jamline
         self.build_list = build_list_files
         self.pyext_name = pyext_name
-        print("!{:20}## pyext = {} ## build_list={}".format('BUILD-{}'.format(short_name), pyext_name, build_list_files))
         if not build_list_files:
             raise GenException("Can't parse '{}' - got empty build list at line {}".format(jamfile, jamline))
 
@@ -247,7 +249,12 @@ def get_tokens_from_section(section_index, tokens):
     return result
 
 
-def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
+def log_message(msg, logs):
+    print(msg)
+    logs.append(msg)
+
+
+def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds, logs):
     jamfile = os.path.normpath(os.path.abspath(jamfname))
     lines = [line.rstrip('\r\n') for line in open(jamfile)]
     tokens = []
@@ -354,6 +361,9 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
                 raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
             build_list_files = get_tokens_from_section(1, entry)
 
+            log_message("{:25}## pyext = {} ## build_list={}".format(
+                'J{}!BUILD-{}'.format(lnnum, build_name), section0[0], build_list_files), logs)
+
             builds.append(BuildItem(
                 short_name=build_name,
                 build_list_files=build_list_files,
@@ -367,12 +377,19 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
             build_list_files = get_tokens_from_section(0, entry[1:])
             arg_list_files = get_tokens_from_section(2, entry[1:])
 
+
+            log_message("{:25}## exe ## build_list={}".format(
+                'J{}!BUILD-{}'.format(lnnum, build_name), build_list_files), logs)
+
             builds.append(BuildItem(
                 short_name=build_name,
                 build_list_files=build_list_files,
                 pyext_name=None,
                 jamfile=jamfile,
                 jamline=lnnum))
+
+            log_message("{:25}## exe={} ## argv={}".format(
+                'J{}!TEST(RUN)-{}'.format(lnnum, test_name), build_name, arg_list_files), logs)
 
             tests.append(BoostPythonTest_Run(
                 short_name=test_name,
@@ -387,22 +404,36 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
                 raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
 
             bpl_id = section0[0]
+            expected_py_main_script='{}.py'.format(bpl_id)
+
             depends = get_tokens_from_section(1, entry[1:])
             if not depends:
+
+                pyext_name = '{}_ext'.format(bpl_id)
+                build_list_files=['{}.cpp'.format(bpl_id)]
+
+                log_message("{:25}## pyext = {} ## build_list={}".format(
+                    'J{}!BUILD-{}'.format(lnnum, build_name), pyext_name, build_list_files), logs)
+
                 builds.append(BuildItem(
                     short_name=build_name,
-                    build_list_files=['{}.cpp'.format(bpl_id)],
-                    pyext_name='{}_ext'.format(bpl_id),
+                    build_list_files=build_list_files,
+                    pyext_name=pyext_name,
                     jamfile=jamfile,
                     jamline=lnnum))
 
+                log_message("{:25}## py_main_script={} ## py_scripts={} ## depends={}".format(
+                    'J{}!TEST(PYD)-{}'.format(lnnum, test_name), expected_py_main_script, [], [build_name]), logs)
+
                 tests.append(BoostPythonTest_PyScript(
                     short_name=test_name,
-                    py_scripts=['{}.py'.format(bpl_id)],
+                    py_main_script=expected_py_main_script,
+                    py_scripts=[],
                     depends=[build_name],
                     jamfile=jamfile,
                     jamline=lnnum))
             else:
+                py_main_script = None
                 py_scripts = []
                 build_list = []
                 py_ext_deps = []
@@ -410,15 +441,21 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
                     if dep.endswith('.cpp'):
                         build_list.append(dep)
                     elif dep.endswith('.py'):
-                        py_scripts.append(dep)
+                        if dep == expected_py_main_script:
+                            py_main_script = dep
+                        else:
+                            py_scripts.append(dep)
                     elif dep in processed_python_extensions:
                         py_ext_deps.append(processed_python_extensions[dep])
                     else:
                         raise GenException("Can't parse '{}' - got unknown token '{}' at line {}".format(jamfile, dep, lnnum))
                 if not build_list and not py_ext_deps:
                     raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
-                if not py_scripts:
-                    raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
+                if py_main_script is None:
+                    if len(py_scripts) != 1:
+                        raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
+                    py_main_script = py_scripts[0]
+                    py_scripts = []
 
                 dep_names = []
                 source_idx = 0
@@ -428,18 +465,31 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds):
                         dep_name = build_name
                     else:
                         dep_name = '{}-x{}'.format(build_name, source_idx)
+
+                    pyext_name=os.path.splitext(os.path.basename(source))[0]
+                    build_list_files=[source]
+
+                    log_message("{:25}## pyext = {} ## build_list={}".format(
+                        'J{}!BUILD-{}'.format(lnnum, dep_name), pyext_name, build_list_files), logs)
+
                     dep_names.append(dep_name)
                     builds.append(BuildItem(
                         short_name=dep_name,
-                        build_list_files=[source],
-                        pyext_name=os.path.splitext(os.path.basename(source))[0],
+                        build_list_files=build_list_files,
+                        pyext_name=pyext_name,
                         jamfile=jamfile,
                         jamline=lnnum))
 
+                bpl_depends = dep_names + py_ext_deps
+
+                log_message("{:25}## py_main_script={} ## py_scripts={} ## depends={}".format(
+                    'J{}!TEST(PYD)-{}'.format(lnnum, test_name), py_main_script, py_scripts, bpl_depends), logs)
+
                 tests.append(BoostPythonTest_PyScript(
                     short_name=test_name,
+                    py_main_script=py_main_script,
                     py_scripts=py_scripts,
-                    depends=dep_names + py_ext_deps,
+                    depends=bpl_depends,
                     jamfile=jamfile,
                     jamline=lnnum))
         else:
@@ -462,12 +512,33 @@ def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
     if not objdir_py2 and not objdir_py3:
         raise Exception("At list one obj directory must be specified")
 
+    if objdir_py2:
+        clean_dir(objdir_py2)
+
+    if objdir_py3:
+        clean_dir(objdir_py3)
+
     tests = []
     builds = []
     naming_offset = 0
+    logs = []
+
     for j in jamfiles:
         naming_offset += 1000
-        parse_boost_python_jamfile(j, naming_offset, tests, builds)
+        parse_boost_python_jamfile(j, naming_offset, tests, builds, logs)
+
+    if objdir_py2:
+        log_fpath = os.path.join(objdir_py2, 'bpt2-parse.log')
+        with open(log_fpath, mode='wt') as fh:
+            for ln in logs:
+                fh.write_lines([ln, '\n'])
+
+    if objdir_py3:
+        log_fpath = os.path.join(objdir_py3, 'bpt3-parse.log')
+        with open(log_fpath, mode='wt') as fh:
+            for ln in logs:
+                fh.writelines([ln, '\n'])
+
     if not tests:
         raise GenException("Cannot find any boost-python test in specified jamfiles: {0}".format(jamfiles))
 
@@ -477,10 +548,8 @@ def generate_boost_python_tests(jamfiles, objdir_py2, objdir_py3):
     ctx2 = None
     ctx3 = None
     if objdir_py2:
-        clean_dir(objdir_py2)
         ctx2 = BuildContext(objdir_py2, py2=True)
     if objdir_py3:
-        clean_dir(objdir_py3)
         ctx3 = BuildContext(objdir_py3, py2=False)
 
     build_names2 = []

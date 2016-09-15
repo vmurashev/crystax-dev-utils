@@ -79,7 +79,7 @@ def tar_dir_content(outdir, tar_file):
             th.add(item_path, item_arcname)
 
 
-def collect_boost_python_tests(objdir, abi, tar_file):
+def collect_boost_python_tests(target_python, objdir, abi, tar_file):
     print("Packaging Boost.Python tests(abi='{}') ...".format(abi))
     test_list_file = os.path.join(objdir, 'test-items.txt')
     with open(os.path.join(objdir, 'test-items.txt')) as fh:
@@ -108,21 +108,26 @@ def collect_boost_python_tests(objdir, abi, tar_file):
                 argv.append(arg_name)
 
             final_description = json.dumps({
-                'mode': 'run-exe',
-                'exe_name': exe_name,
+                'exe_name': './{}'.format(exe_name),
+                'cwd-here': True,
                 'argv': argv,
             })
 
-            final_description_file = os.path.join(tst_dname_out, 'testinfo.json')
+            final_description_file = os.path.join(tst_dname_out, 'testconfig.json')
             with open(final_description_file, mode='wt') as fh:
                 fh.write(final_description)
 
         elif action == 'run-py':
             pyd_links = description['pyd_links']
             py_scripts = description['py_scripts']
+            py_main_script = description['py_main_script']
             for pydlnk in pyd_links:
                 prebuilt_so_dir = os.path.join(objdir, pydlnk)
                 copy_prebuilt_pyd_to_dir(abi, prebuilt_so_dir, tst_dname_out)
+
+            py_main_file_name = os.path.basename(py_main_script)
+            shutil.copy(py_main_script, os.path.join(tst_dname_out, py_main_file_name))
+
             py_names = []
             for pyfile in py_scripts:
                 pyfile_name = os.path.basename(pyfile)
@@ -130,11 +135,12 @@ def collect_boost_python_tests(objdir, abi, tar_file):
                 py_names.append(pyfile_name)
 
             final_description = json.dumps({
-                'mode': 'run-py',
-                'py_scripts': py_names,
+                'exe_name': target_python,
+                'cwd-here': True,
+                'argv': [py_main_file_name],
             })
 
-            final_description_file = os.path.join(tst_dname_out, 'testinfo.json')
+            final_description_file = os.path.join(tst_dname_out, 'testconfig.json')
             with open(final_description_file, mode='wt') as fh:
                 fh.write(final_description)
 
@@ -147,12 +153,13 @@ def collect_boost_python_tests(objdir, abi, tar_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--target-python', required=True)
     parser.add_argument('--objdir', required=True)
     parser.add_argument('--abi', choices=SUPPORTED_ABI, required=True)
     parser.add_argument('--tgzout', required=True)
     args = parser.parse_args()
     try:
-        collect_boost_python_tests(args.objdir, args.abi, os.path.normpath(os.path.abspath(args.tgzout)))
+        collect_boost_python_tests(args.target_python, args.objdir, args.abi, os.path.normpath(os.path.abspath(args.tgzout)))
     except GenException as ex:
         print("ERROR: {}".format(ex))
         exit(126)
