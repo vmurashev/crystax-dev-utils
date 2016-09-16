@@ -108,8 +108,9 @@ def collect_boost_python_tests(target_python, objdir, abi, tar_file):
                 argv.append(arg_name)
 
             final_description = json.dumps({
-                'exe_name': './{}'.format(exe_name),
+                'executable': exe_name,
                 'cwd-here': True,
+                'exe-here': True,
                 'argv': argv,
             })
 
@@ -135,7 +136,7 @@ def collect_boost_python_tests(target_python, objdir, abi, tar_file):
                 py_names.append(pyfile_name)
 
             final_description = json.dumps({
-                'exe_name': target_python,
+                'executable': target_python,
                 'cwd-here': True,
                 'argv': [py_main_file_name],
             })
