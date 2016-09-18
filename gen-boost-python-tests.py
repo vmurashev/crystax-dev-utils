@@ -4,6 +4,7 @@ import os.path
 import inspect
 import shutil
 import json
+import re
 
 
 JAM_SIMPLE_INSTRUCTIONS = ['import', 'lib', 'use-project', 'project', 'local', 'test-suite']
@@ -233,6 +234,27 @@ class BuildContext:
 
         android_mk = os.path.join(jni_dir, 'Android.mk')
         write_text_lines_in_file(android_mk, text_list)
+
+
+def grep_pyd_name(fpath):
+    pyd_names = []
+    with open(fpath, mode='rb') as fh:
+        cxx_text = fh.read().decode(errors='ignore')
+        lnnum = 0
+        for subject in cxx_text.splitlines():
+            lnnum += 1
+            m = re.match(r'^\s*BOOST_PYTHON_MODULE\s*\(\s*(\w+)\s*\)', subject, re.ASCII)
+            if m is None:
+                continue
+            pyd_name = m.group(1)
+            if pyd_name is None:
+                raise GenException("Can't grep line: '{}', stopped at '{}({})'".format(subject, fpath, lnnum))
+            pyd_names.append(pyd_name)
+    if not pyd_names:
+        return None
+    if len(pyd_names) != 1:
+        raise GenException("Ambigous grep for BOOST_PYTHON_MODULE: '{}' at file: '{}'".format(pyd_names, fpath))
+    return pyd_names[0]
 
 
 def get_tokens_from_section(section_index, tokens):
@@ -466,7 +488,14 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds, logs):
                     else:
                         dep_name = '{}-x{}'.format(build_name, source_idx)
 
-                    pyext_name=os.path.splitext(os.path.basename(source))[0]
+                    cxx_fpath = os.path.normpath(os.path.join(os.path.dirname(jamfile), source))
+                    cxx_ext_name = grep_pyd_name(cxx_fpath)
+
+                    if cxx_ext_name is not None:
+                        pyext_name=cxx_ext_name
+                    else:
+                        pyext_name=os.path.splitext(os.path.basename(source))[0] + '_ext'
+
                     build_list_files=[source]
 
                     log_message("{:25}## pyext = {} ## build_list={}".format(

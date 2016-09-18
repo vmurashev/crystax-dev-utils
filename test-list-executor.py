@@ -141,30 +141,30 @@ def run_loaded_tests(tests, log):
     total  = 0
     passed = 0
     failed = 0
-    hung   = 0
-    hung_names = []
+    hung_cache = []
     failed_names = []
 
     log_message("* Loaded {} test(s)".format(len(tests)), log)
-    for test in tests:
-        cmdline, retcode, output, timed_out, sigint = test.perform(log=log)
-        if sigint:
-            break
-        total += 1
-        if isinstance(retcode, int) and retcode == 0:
-            passed += 1
-        elif timed_out:
-            hung += 1
-            hung_names.append(test.title)
-        else:
-            failed += 1
-            failed_names.append(test.title)
-    log_message("* DONE: passed={}, failed={}, hung={}, total={}".format(passed, failed, hung, total), log)
-    if hung_names:
-        log_message("* HUNG: {}".format(', '.join(hung_names)), log)
+    work_list = tests[:]
+    while work_list:
+        for test in work_list:
+            cmdline, retcode, output, timed_out, sigint = test.perform(log=log)
+            if sigint:
+                break
+            total += 1
+            if isinstance(retcode, int) and retcode == 0:
+                passed += 1
+            elif timed_out:
+                hung_cache.append(test)
+            else:
+                failed += 1
+                failed_names.append(test.title)
+        work_list = hung_cache[:]
+        hung_cache = []
+
+    log_message("* DONE: passed={}, failed={}, total={}".format(passed, failed, total), log)
     if failed_names:
         log_message("* FAILED: {}".format(', '.join(failed_names)), log)
-
 
 
 def main():
