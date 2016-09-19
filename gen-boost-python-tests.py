@@ -160,11 +160,11 @@ class BuildContext:
 
         if self._is_py2:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
             ]
         else:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
             ]
 
         text_list += [
@@ -207,11 +207,11 @@ class BuildContext:
 
         if self._is_py2:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
             ]
         else:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
             ]
 
         text_list += [

@@ -98,6 +98,12 @@ def main():
     check_call('adb push {} {}'.format(os.path.join(DIR_SRC_CRYSTAX, abi, 'libcrystax.so'), '/'.join([DIR_TARGET_LIB, 'libcrystax.so'])))
     check_call('adb push {} {}'.format(os.path.join(DIR_SRC_CXXSTL, abi, 'libgnustl_shared.so'), '/'.join([DIR_TARGET_LIB, 'libgnustl_shared.so'])))
 
+    boost_python2_src = os.path.normpath(os.path.join(NDK_DIR, 'sources/boost/1.61.0/libs/{}/gnu-5/libboost_python.so'.format(abi)))
+    boost_python3_src = os.path.normpath(os.path.join(NDK_DIR, 'sources/boost/1.61.0/libs/{}/gnu-5/libboost_python3.so'.format(abi)))
+
+    check_call('adb push {} {}'.format(boost_python2_src, '/'.join([DIR_TARGET_LIB, os.path.basename(boost_python2_src)])))
+    check_call('adb push {} {}'.format(boost_python3_src, '/'.join([DIR_TARGET_LIB, os.path.basename(boost_python3_src)])))
+
     py_dirs, py_files = create_python_catolog(abi)
     for dname in py_dirs:
         check_call('adb shell mkdir -p {}'.format(dname))
