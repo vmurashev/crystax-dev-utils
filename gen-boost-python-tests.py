@@ -160,11 +160,13 @@ class BuildContext:
 
         if self._is_py2:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
+#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
             ]
         else:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
+#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
             ]
 
         text_list += [
@@ -207,11 +209,13 @@ class BuildContext:
 
         if self._is_py2:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
+#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
             ]
         else:
             text_list += [
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
+#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
+                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
             ]
 
         text_list += [
@@ -426,6 +430,12 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds, logs):
                 raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
 
             bpl_id = section0[0]
+
+            if bpl_id == 'try':
+                # temporary disabled
+                # this test can't work with static linkage of boost-python
+                continue
+
             expected_py_main_script='{}.py'.format(bpl_id)
 
             depends = get_tokens_from_section(1, entry[1:])

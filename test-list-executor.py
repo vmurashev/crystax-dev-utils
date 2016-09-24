@@ -151,11 +151,12 @@ def run_loaded_tests(tests, log):
             cmdline, retcode, output, timed_out, sigint = test.perform(log=log)
             if sigint:
                 break
+            if timed_out:
+                hung_cache.append(test)
+                continue
             total += 1
             if isinstance(retcode, int) and retcode == 0:
                 passed += 1
-            elif timed_out:
-                hung_cache.append(test)
             else:
                 failed += 1
                 failed_names.append(test.title)
