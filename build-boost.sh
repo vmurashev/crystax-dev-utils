@@ -41,9 +41,12 @@ if [ ! -f $BPT_FIX_STAMP ]; then
 fi
 
 ABI_ALL='armeabi,armeabi-v7a,armeabi-v7a-hard,x86,mips,arm64-v8a,x86_64,mips64'
-#ABI_BUILD=$ABI_ALL
-ABI_BUILD=armeabi-v7a
+ABI_BUILD=$ABI_ALL
+#ABI_BUILD=armeabi-v7a
 
 SRC_DIR_BUILD=$(cd $SRC_DIR && cd .. && pwd)
-set -x
+mkdir -p $OBJ_DIR
+NDK_LOGFILE=$OBJ_DIR/ndk-build.log
+rm -rf $NDK_LOGFILE
+export NDK_LOGFILE
 $NDK_DIR/build/instruments/build-boost.sh --verbose --abis=$ABI_BUILD --version=$BOOST_VERSION --stdlibs='gnu-5' --build-dir=$OBJ_DIR $SRC_DIR_BUILD
