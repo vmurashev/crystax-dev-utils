@@ -9,10 +9,10 @@ import re
 
 JAM_SIMPLE_INSTRUCTIONS = ['import', 'lib', 'use-project', 'project', 'local', 'test-suite']
 JAM_COMPLEX_INSTRUCTIONS = ['if', 'rule']
-TEST_OPS_TO_SKIP = ['compile', 'py-compile', 'py-compile-fail']
+TEST_OPS_TO_SKIP = ['compile', 'py-compile', 'py-compile-fail', 'numpy-test']
 KNOWN_TEST_TYPES = ['run', 'bpl-test', 'py-run', 'python-extension']
 
-NDK_BOOST_VERSION = '1.61.0'
+NDK_BOOST_VERSION = None
 
 
 def write_text_lines_in_file(fname, text_list):
@@ -160,13 +160,11 @@ class BuildContext:
 
         if self._is_py2:
             text_list += [
-#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
+                'LOCAL_STATIC_LIBRARIES := boost_python_shared python_shared'
             ]
         else:
             text_list += [
-#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
+                'LOCAL_STATIC_LIBRARIES := boost_python3_shared python_shared'
             ]
 
         text_list += [
@@ -209,13 +207,11 @@ class BuildContext:
 
         if self._is_py2:
             text_list += [
-#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_shared'
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python_static'
+                'LOCAL_STATIC_LIBRARIES := boost_python_shared python_shared'
             ]
         else:
             text_list += [
-#                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_shared'
-                'LOCAL_STATIC_LIBRARIES := python_shared boost_python3_static'
+                'LOCAL_STATIC_LIBRARIES := boost_python3_shared python_shared'
             ]
 
         text_list += [
@@ -333,16 +329,27 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds, logs):
             depth = 0
             for tk, lnnum in i[3:len(i)-1]:
                 if tk == '[':
-                    if depth != 0:
-                        raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
                     depth += 1
+                    if depth > 1:
+                        suit.append((tk, lnnum))
                 elif tk == ']':
                     depth -= 1
-                    if depth != 0:
+                    if depth < 0:
                         raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
-                    if suit[0][0] not in TEST_OPS_TO_SKIP:
-                        suits.append(suit)
-                    suit = []
+                    if depth == 0 and suit:
+                        suit_bits = []
+                        for xtk, xlnnum in suit:
+                            suit_bits.append(xtk)
+                        suit_log_line = ' '.join(suit_bits)
+                        if suit[0][0] not in TEST_OPS_TO_SKIP:
+                            suits.append(suit)
+                            log_message("J{} ## +++ {}".format(suit[0][1], suit_log_line), logs)
+                        else:
+                            log_message("J{} ## --- {}".format(suit[0][1], suit_log_line), logs)
+                        suit = []
+                    else:
+                        suit.append((tk, lnnum))
+
                 else:
                     suit.append((tk, lnnum))
 
@@ -430,11 +437,6 @@ def parse_boost_python_jamfile(jamfname, naming_offset, tests, builds, logs):
                 raise GenException("Failed to parse '{}' - stopped at line {}".format(jamfile, lnnum))
 
             bpl_id = section0[0]
-
-            if bpl_id == 'try':
-                # temporary disabled
-                # this test can't work with static linkage of boost-python
-                continue
 
             expected_py_main_script='{}.py'.format(bpl_id)
 
@@ -637,7 +639,10 @@ if __name__ == '__main__':
     parser.add_argument('--jamfiles', nargs='*')
     parser.add_argument('--objdir-py2')
     parser.add_argument('--objdir-py3')
+    parser.add_argument('--boost-version', required=True)
     args = parser.parse_args()
+    global NDK_BOOST_VERSION
+    NDK_BOOST_VERSION = args.boost_version
     try:
         generate_boost_python_tests(args.jamfiles, args.objdir_py2, args.objdir_py3)
     except GenException as ex:
