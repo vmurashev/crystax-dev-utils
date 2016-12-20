@@ -8,7 +8,7 @@ DIR_OBJ_ROOT=$DIR_HERE/obj
 mkdir -p $DIR_EXTERNALS
 mkdir -p $DIR_OBJ_ROOT
 
-BOOST_URL='https://api.github.com/repos/crystax/android-vendor-boost-1-62-0/tarball/master'
+BOOST_URL='https://api.github.com/repos/vmurashev/android-vendor-boost-1-62-0/tarball/develop'
 BOOST_VERSION='1.62.0'
 BOOST_ARC_NAME="boost-$BOOST_VERSION.tgz"
 
@@ -23,21 +23,6 @@ if [ ! -d $SRC_DIR ]; then
     fi
     mkdir -p $SRC_DIR
     tar xvf "$DIR_EXTERNALS/$BOOST_ARC_NAME" --strip-components=1 -C $SRC_DIR
-fi
-
-BPT_FIX_STAMP="$DIR_EXTERNALS/bpt-fix.stamp"
-FIXED_BOOST_PYTHON_GIT_LINK='https://github.com/boostorg/python.git'
-FIXED_BOOST_PYTHON_SRC_DIR="$DIR_EXTERNALS/my-boost-python"
-
-if [ ! -f $BPT_FIX_STAMP ]; then
-    if [ ! -d "$FIXED_BOOST_PYTHON_SRC_DIR" ]; then
-        mkdir -p $FIXED_BOOST_PYTHON_SRC_DIR
-        echo "> git clone '$FIXED_BOOST_PYTHON_GIT_LINK' in '$FIXED_BOOST_PYTHON_SRC_DIR'"
-        ( cd $FIXED_BOOST_PYTHON_SRC_DIR && git clone $FIXED_BOOST_PYTHON_GIT_LINK . )
-    fi
-    rm -rf "$SRC_DIR/libs/python/test"
-    ( cd "$SRC_DIR/libs/python" && ln -s "$FIXED_BOOST_PYTHON_SRC_DIR/test" 'test' )
-    touch $BPT_FIX_STAMP
 fi
 
 ABI_ALL='armeabi,armeabi-v7a,armeabi-v7a-hard,x86,mips,arm64-v8a,x86_64,mips64'
